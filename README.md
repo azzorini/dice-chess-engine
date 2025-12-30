@@ -128,6 +128,8 @@ while True:
     board.next_player() # Change the player
 ```
 
+A [Notebook](./DiceChess.ipynb) is included to have a better experience playing the game. This notebook gives a nice visualization of the board but it is not a GUI.
+
 ---
 
 ## ⚖️ License
