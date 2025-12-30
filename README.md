@@ -12,8 +12,7 @@ This is an **open-source Python implementation** of the *Dice Chess* variant, bu
 Each turn, a player rolls three dice that determine which pieces they may move.  
 Unlike standard chess, **check and checkmate do not exist** — the game ends only when a king is captured.  
 
-This project is **not affiliated with or endorsed by [dicechess.com](https://www.dicechess.com)**.  
-It is an independent educational and hobby implementation of similar gameplay mechanics.
+This project is **not affiliated with or endorsed by [dicechess.com](https://www.dicechess.com)**. It is an independent educational and hobby implementation of similar gameplay mechanics.
 
 ---
 
@@ -140,16 +139,12 @@ You are free to use, modify, and distribute this code provided that:
 - Any derivative works remain under the GPL v3 license.  
 - Proper attribution is given to the original author.  
 
-You can find the full license text in the [`LICENSE`](./LICENSE) file or at  
-[https://www.gnu.org/licenses/gpl-3.0.en.html](https://www.gnu.org/licenses/gpl-3.0.en.html).
+You can find the full license text in the [`LICENSE`](./LICENSE) file or at [https://www.gnu.org/licenses/gpl-3.0.en.html](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 ---
 
 ## 🧩 Disclaimer
 
-This project is an **independent, open-source implementation** of a dice-based chess variant inspired by publicly known gameplay concepts.  
-It is **not affiliated with, endorsed by, or derived from** any proprietary code, design, or intellectual property belonging to  
-[*dicechess.com*](https://www.dicechess.com) or its creators.  
+This project is an **independent, open-source implementation** of a dice-based chess variant inspired by publicly known gameplay concepts. It is **not affiliated with, endorsed by, or derived from** any proprietary code, design, or intellectual property belonging to [*dicechess.com*](https://www.dicechess.com) or its creators.  
 
-All source code in this repository was written entirely from scratch using publicly available chess mechanics via the  
-[`python-chess`](https://python-chess.readthedocs.io/) library.
+All source code in this repository was written entirely from scratch using publicly available chess mechanics via the [`python-chess`](https://python-chess.readthedocs.io/) library.
