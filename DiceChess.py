@@ -10,7 +10,7 @@ pieces_list: List[chess.PieceType] = [chess.PAWN, chess.KNIGHT, chess.BISHOP, ch
 pieces_name_list: List[str] = ["Pawn", "Knight", "Bishop", "Rook", "Queen", "King"]
 
 class DiceBoard(chess.Board):
-    def __init__(self: Self, *args, **kwargs) -> Self:
+    def __init__(self: Self, *args, **kwargs) -> None:
         """Constructor that gives the arguments to the chess.Board constructor.
         It initializes the dice roll as an empty list and the ep_squares dict as
         a dictionary with empty lists of squares."""
@@ -32,7 +32,7 @@ class DiceBoard(chess.Board):
     def _get_pseudo_moves(self: Self) -> List[chess.Move]:
         """Get possible moves compatible with the dices.
         If there is only one piece left these are all the possible moves."""
-        return [move for move in self.pseudo_legal_moves_dice if
+        return [move for move in self._get_pseudo_legal_moves_dice() if
                 ((not (castling := self.is_castling(move))) and (piece := self.piece_at(move.from_square))
                  and (piece.piece_type in self.dice_roll)) or (castling and chess.KING in self.dice_roll and chess.ROOK in self.dice_roll)]
     
@@ -44,7 +44,7 @@ class DiceBoard(chess.Board):
         for i, move in enumerate(pseudo_moves):
             board_p1: DiceBoard = self.copy(stack=False)
             board_p1.push(move, make_changes = True)
-            pseudo_moves_p1: List[Move] = board_p1._get_pseudo_moves()
+            pseudo_moves_p1: List[chess.Move] = board_p1._get_pseudo_moves()
             if self.is_castling(move):
                 count_list[i] = 2
                 if max_count < 2:
@@ -64,7 +64,7 @@ class DiceBoard(chess.Board):
                     
                     board_p2: DiceBoard = board_p1.copy(stack=False)
                     board_p2.push(move_p1, make_changes = True)
-                    pseudo_moves_p2: List[Move] = board_p2._get_pseudo_moves()
+                    pseudo_moves_p2: List[chess.Move] = board_p2._get_pseudo_moves()
                     if len(pseudo_moves_p2) > 0:
                         count_list[i] = 3
                         max_count = 3
@@ -107,31 +107,27 @@ class DiceBoard(chess.Board):
     
     def push(self: Self, move: chess.Move, make_changes: bool = False):
         """Push a move, managing extended en passant and multi-move turns."""
-        color: bool = self.turn
-        opponent: bool = not color
+        color: chess.Color = self.turn
+        opponent: chess.Color = not color
 
-        piece: chess.Piece = self.piece_at(move.from_square)
+        piece: None | chess.Piece = self.piece_at(move.from_square)
+        assert not piece is None, f"Trying to start move '{move}' from empty square."
+
         is_castling: bool = self.is_castling(move)
-        is_pawn: bool = piece and piece.piece_type == chess.PAWN
-        ep_capture_square: None | chess.Square = None
+        is_pawn: bool = piece.piece_type == chess.PAWN
 
         # Detect custom en passant captures
         if (
-            make_changes
-            and is_pawn
+            is_pawn
             and move.to_square in self.ep_squares[color]
             and not self.piece_at(move.to_square)  # target is empty
         ):
-            # This is an en passant capture
-            ep_capture_square = (
-                move.to_square + (8 if color == chess.BLACK else -8)
-            )  # square of captured pawn
+            # Change capture square for base class
+            self.ep_square = move.to_square
 
-            # Remove captured pawn manually
-            self.remove_piece_at(ep_capture_square)
-
-            # Remove ep square
-            self.ep_squares[color].remove(move.to_square)
+            # Remove ep square from dict
+            if make_changes:
+                self.ep_squares[color].remove(move.to_square)
 
         # Execute the move normally
         super().push(move)
@@ -161,7 +157,7 @@ class DiceBoard(chess.Board):
                 for side_file in (to_file - 1, to_file + 1):
                     if 0 <= side_file <= 7:  # stay on board
                         neighbor_sq: chess.Square = chess.square(side_file, to_rank)
-                        piece: chess.Piece = self.piece_at(neighbor_sq)
+                        piece: None | chess.Piece = self.piece_at(neighbor_sq)
                         if piece and piece.piece_type == chess.PAWN and piece.color == opponent:
                             has_adjacent_opponent_pawn = True
                             break
@@ -170,15 +166,17 @@ class DiceBoard(chess.Board):
                 if has_adjacent_opponent_pawn and not ep_sq in self.ep_squares[opponent]:
                     self.ep_squares[opponent].append(ep_sq)
     
-    @property
-    def pseudo_legal_moves_dice(self: Self) -> List[chess.Move]:
+    def _get_pseudo_legal_moves_dice(self: Self) -> List[chess.Move]:
         """All standard pseudo-legal moves + custom en passant moves."""
-        moves: List[chess.Move] = list(super().pseudo_legal_moves)
-        color: bool = self.turn
-        opponent: bool = not color
+        moves: List[chess.Move] = list(self.pseudo_legal_moves)
+        color: chess.Color = self.turn
+        opponent: chess.Color = not color
 
         # Add all custom en passant moves for this side
         for ep_sq in self.ep_squares[color]:
+            if not self.piece_at(ep_sq) is None:
+                continue # If there is a piece in the en passant square we capture this piece
+
             # Rank of target square (where capturing pawn will land)
             ep_rank: int = chess.square_rank(ep_sq)
             ep_file: int = chess.square_file(ep_sq)
@@ -192,12 +190,12 @@ class DiceBoard(chess.Board):
                 pawn_file: int = ep_file + df
                 if 0 <= pawn_file <= 7:
                     pawn_sq: chess.Square = chess.square(pawn_file, ep_rank - direction)
-                    piece: chess.Piece = self.piece_at(pawn_sq)
+                    piece: None | chess.Piece = self.piece_at(pawn_sq)
                     if piece and piece.piece_type == chess.PAWN and piece.color == color:
                         # Create en passant move
                         move: chess.Move = chess.Move(pawn_sq, ep_sq)
                         # Double-check that the captured square really contains an opponent pawn
-                        captured_piece: chess.Piece = self.piece_at(captured_sq)
+                        captured_piece: None | chess.Piece = self.piece_at(captured_sq)
                         if captured_piece and captured_piece.piece_type == chess.PAWN and captured_piece.color == opponent:
                             moves.append(move)
 
@@ -212,7 +210,7 @@ class DiceBoard(chess.Board):
         """In dice chess the checks do not matter, so I will always return False."""
         return False
     
-    def _attacked_for_king(self: Self, king_square: chess.Square, color: bool) -> bool:
+    def _attacked_for_king(self: Self, path: chess.Square, occupied: chess.Bitboard) -> bool:
         """Dice Chess ignores checks; the king is never considered attacked."""
         return False
     
@@ -222,10 +220,10 @@ class DiceBoard(chess.Board):
     
     def san(self: Self, move: chess.Move) -> str:
         """Return SAN (standard algebraic notation) for a move, including custom en passant."""
-        color: bool = self.turn
+        color: chess.Color = self.turn
     
         # Check if this move is a custom en passant capture
-        is_pawn: bool = (piece := self.piece_at(move.from_square)) and piece.piece_type == chess.PAWN
+        is_pawn: bool = (not (piece := self.piece_at(move.from_square)) is None) and piece.piece_type == chess.PAWN
         if (
             is_pawn
             and move.to_square in self.ep_squares[color]
@@ -241,7 +239,7 @@ class DiceBoard(chess.Board):
         self.ep_square = None
         return san_str
 
-    def is_game_over(self: Self, move: chess.Move) -> bool:
+    def is_game_over(self: Self, move: chess.Move) -> bool: # pyright: ignore[reportIncompatibleMethodOverride]
         """Check if the move ends the game (king capture)"""
         captured: None | chess.Piece = self.piece_at(move.to_square)
         if captured and captured.piece_type == chess.KING:
@@ -250,7 +248,7 @@ class DiceBoard(chess.Board):
 
     def next_player(self: Self) -> None:
         """Change to the next player"""
-        color: bool = self.turn
+        color: chess.Color = self.turn
         self.ep_squares[color] = []
         self.turn = not color
 
